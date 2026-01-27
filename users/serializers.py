@@ -13,7 +13,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone_number', 'password', 'password2']
+        fields = ['first_name', 'last_name', 'email', 'password', 'password2']
 
     def validate(self, data):
         if data['password'] != data['password2']:
@@ -22,22 +22,23 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password2')
+        password = validated_data.pop("password")
 
-        return User.objects.create_user(**validated_data)
+        return User.objects.create_user(password=password, **validated_data)
 
 
 # Serializer for retrieving user details
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number']
+        fields = ['id', 'email', 'first_name', 'last_name']
 
 
 # Serializer for updating user details
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone_number']
+        fields = ['first_name', 'last_name', 'email']
 
 
 # Serializer for changing password
