@@ -2,15 +2,15 @@ from django.urls import path
 from .views import (
     ProductCreateView,
     ProductUpdateView,
-    ProductDetailView,
-    ProductListView,
+    VariantDetailView,
+    VariantListView,
     CategoryCreateView,
 )
 
 urlpatterns = [
     # Public
-    path("products/", ProductListView.as_view(), name="product-list"),
-    path("products/<slug:slug>/", ProductDetailView.as_view(), name="product-detail"),
+    path("", VariantListView.as_view(), name="product-list"),
+    path("<str:sku>/", VariantDetailView.as_view(), name="product-detail"),
 
     # Admin
     path("admin/categories/create/", CategoryCreateView.as_view()),

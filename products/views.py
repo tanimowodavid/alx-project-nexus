@@ -5,8 +5,8 @@ from rest_framework.permissions import IsAdminUser, AllowAny
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
-from .models import Product
-from .serializers import ProductSerializer, CategorySerializer
+from .models import Product, ProductVariant
+from .serializers import ProductSerializer, CategorySerializer, ProductVariantListSerializer, ProductVariantDetailSerializer
 
 
 class CategoryCreateView(APIView):
@@ -60,19 +60,29 @@ class ProductUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ProductDetailView(APIView):
-    permission_classes = [AllowAny]
 
-    def get(self, request, slug):
-        product = get_object_or_404(Product.objects, slug=slug)
-        serializer = ProductSerializer(product)
-        return Response(serializer.data)
-
-class ProductListView(APIView):
+class VariantListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        products = Product.objects.all()
-        serializer = ProductSerializer(products, many=True)
+        variants = ProductVariant.objects.filter(
+            is_active=True,
+            product__is_active=True
+        ).select_related("product")
+
+        serializer = ProductVariantListSerializer(variants, many=True)
+        return Response(serializer.data)
+
+class VariantDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, sku):
+        variant = get_object_or_404(
+            ProductVariant.objects.select_related("product"),
+            sku=sku,
+            is_active=True,
+            product__is_active=True
+        )
+        serializer = ProductVariantDetailSerializer(variant)
         return Response(serializer.data)
 
