@@ -1,25 +1,62 @@
-# from django.db import models
+from django.db import models
+from .managers import ActiveManager
+import uuid
+from django.utils.text import slugify
 
-# # Create your models here.
+# Create your models here.
 
-# class Category(models.Model):
-#     name = models.CharField(max_length=100)
-#     slug = models.SlugField(unique=True)
-#     description = models.TextField(blank=True, null=True)
-#     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcategories')
+class Category(models.Model):
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True, null=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcategories')
 
-#     def __str__(self):
-#         return self.name
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
-# class Product(models.Model):
-#     name = models.CharField(max_length=200)
-#     slug = models.SlugField(unique=True)
-#     description = models.TextField()
-#     base_price = models.DecimalField(max_digits=10, decimal_places=2)
-#     is_active = models.BooleanField(default=True)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     category = models.ManyToManyField(Category, on_delete=models.SET_NULL, related_name='products')
+    def __str__(self):
+        return self.name
 
-#     def __str__(self):
-#         return self.name
+
+class Product(models.Model):
+    name = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True , blank=True)
+    description = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    category = models.ManyToManyField(Category, related_name='products', blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.name)
+            unique_slug = base_slug
+            
+            while Product.all_objects.filter(slug=unique_slug).exists():
+                unique_slug = f"{base_slug}-{uuid.uuid4().hex[:4]}"
+            
+            self.slug = unique_slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class ProductVariant(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='variants')
+    sku = models.CharField(max_length=100, unique=True)
+    variant_name = models.CharField(max_length=200)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    stock_quantity = models.PositiveIntegerField()
+    is_active = models.BooleanField(default=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
+
+    def __str__(self):
+        return f"{self.product.name} - {self.variant_name}"
 
