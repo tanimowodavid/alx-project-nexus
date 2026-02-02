@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'products',
     'address',
     'carts',
+    'orders',
+    'payments',
 
 ]
 
@@ -148,3 +150,12 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
+# Details for paystack payment gateway
+PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', '')
+PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', '')
+
+# The URL for Redis (the 'inbox' for my celery tasks)
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+
+# Where the results of the tasks will be stored
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'

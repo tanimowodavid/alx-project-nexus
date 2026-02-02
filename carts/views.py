@@ -16,9 +16,9 @@ class CartViewSet(viewsets.ModelViewSet):
         return Cart.objects.filter(user=self.request.user).prefetch_related('items__product_variant')
 
     def create(self, request, *args, **kwargs):
-        variant_slug = request.data.get('variant_slug')
+        variant_sku = request.data.get('variant_sku')
         quantity = int(request.data.get('quantity', 1))
-        variant = get_object_or_404(ProductVariant, slug=variant_slug)
+        variant = get_object_or_404(ProductVariant, sku=variant_sku)
         
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
         # Use 'product_variant' to match your serializer/model
@@ -34,11 +34,11 @@ class CartViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def reduce_item(self, request):
-        variant_slug = request.data.get('variant_slug')
+        variant_sku = request.data.get('variant_sku')
         quantity = int(request.data.get('quantity', 1))
         cart = self.get_queryset().first()
         
-        item = get_object_or_404(CartItem, cart=cart, product_variant__slug=variant_slug)
+        item = get_object_or_404(CartItem, cart=cart, product_variant__sku=variant_sku)
         
         if item.quantity <= quantity:
             item.delete()
@@ -50,9 +50,9 @@ class CartViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['delete'])
     def remove_item(self, request):
-        variant_slug = request.data.get('variant_slug')
+        variant_sku = request.data.get('variant_sku')
         cart = self.get_queryset().first()
         
-        item = get_object_or_404(CartItem, cart=cart, product_variant__slug=variant_slug)
+        item = get_object_or_404(CartItem, cart=cart, product_variant__sku=variant_sku)
         item.delete()
         return Response({"message": "Item completely removed"}, status=status.HTTP_204_NO_CONTENT)
