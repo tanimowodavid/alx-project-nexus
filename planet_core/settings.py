@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'products',
     'address',
     'carts',
+    'orders',
+    'payments',
 
 ]
 
@@ -148,3 +150,5 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
+PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', '')
+PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', '')
