@@ -1,78 +1,108 @@
-from django.db import transaction
+from rest_framework import viewsets, status
 from rest_framework.views import APIView
+from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from carts.models import Cart
 from address.models import Address
 from .models import Order, OrderItem
-from rest_framework.permissions import IsAuthenticated
-import logging
+from .serializers import OrderSerializer
+from .services import PaystackService
+from django.shortcuts import get_object_or_404
+from .tasks import process_order_payment
 
-logger = logging.getLogger(__name__)
 
-
-class CheckoutView(APIView):
-    """Create an order from cart items. Payment must be completed to confirm the order."""
+class OrderViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    This view allows users to view their order history.
+    """
+    serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user).prefetch_related('items')
+
+
+class CheckoutView(viewsets.ViewSet):
+    """
+    This view handles the 'Checkout' button logic.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request):
         user = request.user
-        
-        try:
-            cart = Cart.objects.get(user=user)
-            
-            if not cart.items.exists():
-                return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
+        cart = Cart.objects.filter(user=user).first()
 
-            # Get default address
-            address = Address.objects.filter(user=user, is_default=True).first()
-            if not address:
-                return Response({"error": "No default address found"}, status=status.HTTP_400_BAD_REQUEST)
+        # Check if cart exist and not empty
+        if not cart or not cart.items.exists():
+            return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Validate stock availability before creating order
-            for item in cart.items.all():
-                variant = item.product_variant
-                if variant.stock_quantity < item.quantity:
-                    return Response(
-                        {"error": f"Not enough stock for {variant.variant_name}. Available: {variant.stock_quantity}, Requested: {item.quantity}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+        # Confirm address
+        address = Address.objects.filter(user=user, is_default=True).first()
+        if not address:
+            return Response({"error": "Please set a default shipping address"}, status=status.HTTP_400_BAD_REQUEST)
 
-            with transaction.atomic():
-                # 1. Create the Order with 'pending' status
-                order = Order.objects.create(
-                    user=user,
-                    shipping_address_snapshot=str(address),
-                    total_price=cart.total_price,
-                    status='pending'
-                )
-
-                # 2. Create OrderItems (DO NOT reduce stock yet - wait for payment verification)
-                for item in cart.items.all():
-                    variant = item.product_variant
-                    
-                    OrderItem.objects.create(
-                        order=order,
-                        product_variant=variant,
-                        price_at_purchase=variant.price,
-                        quantity=item.quantity
-                    )
-
-                # Return order details for payment initiation
+        # Pre-check Stock
+        for item in cart.items.all():
+            if item.product_variant.stock_quantity < item.quantity:
                 return Response(
-                    {
-                        "message": "Order created. Please complete payment to confirm.",
-                        "order_id": order.id,
-                        "total_price": str(order.total_price),
-                        "status": order.status
-                    },
-                    status=status.HTTP_201_CREATED
+                    {"error": f"Item {item.product_variant.variant_name} is out of stock"},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
-        except Cart.DoesNotExist:
-            return Response({"error": "Cart not found"}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            logger.error(f"Checkout error for user {user.id}: {str(e)}", exc_info=True)
-            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Create Pending Order & Snapshots
+        order = Order.objects.create(
+            user=user,
+            shipping_address_snapshot=str(address),
+            total_price=cart.total_price,
+            status='pending'
+        )
 
+        # Create the order items
+        for item in cart.items.all():
+            OrderItem.objects.create(
+                order=order,
+                product_snapshot=item.product_variant.product.name,
+                variant_snapshot=item.product_variant.variant_name,
+                price_at_purchase=item.product_variant.price,
+                quantity=item.quantity
+            )
+
+        # Generate Paystack Link
+        paystack = PaystackService()
+        paystack_data = paystack.initialize_paystack_payment(
+            email=user.email,
+            amount=order.total_price,
+            tx_ref=order.tx_ref
+        )
+
+        if paystack_data.get('status'):
+            checkout_url = paystack_data['data']['authorization_url']
+
+            return Response({
+                "message": "Payment link generated",
+                "tx_ref": str(order.tx_ref),
+                "checkout_url": checkout_url
+            }, status=status.HTTP_201_CREATED)
+
+
+        return Response(
+            {"error": "Could not generate payment link"}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+class VerifyPaymentView(APIView):
+    def get(self, request: Request, tx_ref):
+        order = get_object_or_404(Order, tx_ref=tx_ref)
+
+        paystack = PaystackService()
+        verification = paystack.verify_payment(order.tx_ref)
+
+        if verification.get("status") and verification['data']['status'] == 'success':
+            process_order_payment.delay(order.id)
+            return Response({"message": "Payment verified, processing order."}, status=200)
+
+        return Response({"status": "Payment Failed"}, status.HTTP_400_BAD_REQUEST)
+    
 

@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 
@@ -17,6 +18,7 @@ class Order(models.Model):
     # Snapshot fields
     shipping_address_snapshot = models.TextField() 
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
+    tx_ref = models.CharField(max_length=100, default=uuid.uuid4)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)

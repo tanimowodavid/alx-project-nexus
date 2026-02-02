@@ -24,14 +24,18 @@ services:
 
   celery:
     build: .
-    command: celery -A your_project_name worker --loglevel=info
+    command: celery -A planet_core worker --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=1
     depends_on:
       - db
       - redis
 
-    adminer:
-      image: adminer
-      ports:
-        - "8080:8080"
-      depends_on:
-        - db
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
