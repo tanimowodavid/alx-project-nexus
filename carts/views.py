@@ -7,12 +7,13 @@ from .models import Cart, CartItem
 from products.models import ProductVariant
 from .serializers import CartSerializer
 
+
 class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSerializer
     permission_classes = [IsAuthenticated]
 
+    # --- CORE CRUD OPERATIONS ---
     def get_queryset(self):
-        # Using select_related/prefetch_related improves performance
         return Cart.objects.filter(user=self.request.user).prefetch_related('items__product_variant')
 
     def create(self, request, *args, **kwargs):
@@ -21,7 +22,6 @@ class CartViewSet(viewsets.ModelViewSet):
         variant = get_object_or_404(ProductVariant, sku=variant_sku)
         
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
-        # Use 'product_variant' to match your serializer/model
         item, created = CartItem.objects.get_or_create(cart=cart, product_variant=variant)
         
         if not created:
@@ -32,6 +32,7 @@ class CartViewSet(viewsets.ModelViewSet):
         item.save()
         return Response({"message": "Item added to cart"}, status=status.HTTP_201_CREATED)
 
+    # --- QUANTITY MANAGEMENT ---
     @action(detail=False, methods=['post'])
     def reduce_item(self, request):
         variant_sku = request.data.get('variant_sku')
@@ -56,3 +57,12 @@ class CartViewSet(viewsets.ModelViewSet):
         item = get_object_or_404(CartItem, cart=cart, product_variant__sku=variant_sku)
         item.delete()
         return Response({"message": "Item completely removed"}, status=status.HTTP_204_NO_CONTENT)
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Overridden to prevent users from deleting their cart instance.
+        """
+        return Response(
+            {"error": "Carts cannot be deleted. Use 'remove_item' or 'clear_cart' instead."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )

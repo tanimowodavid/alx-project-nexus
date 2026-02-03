@@ -7,9 +7,7 @@ class AddressViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Users should only see/edit their own addresses
         return Address.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # Automatically assign the logged-in user to the address
         serializer.save(user=self.request.user)

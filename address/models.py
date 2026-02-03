@@ -17,17 +17,17 @@ class Address(models.Model):
         return f"{self.label} - {self.street}, {self.city}, {self.state}, {self.country}"
 
     def save(self, *args, **kwargs):
-        # 1. Check if this is the user's only address
+        # Check if this is the user's only address
         user_addresses = Address.objects.filter(user=self.user)
         
         if not user_addresses.exists():
             self.is_default = True
             
-        # 2. If this is being set as default, unset others
+        # If this is being set as default, unset others
         if self.is_default:
             user_addresses.filter(is_default=True).exclude(pk=self.pk).update(is_default=False)
         
-        # 3. Prevent unsetting the default if it's the only one
+        # Prevent unsetting the default if it's the only one
         elif not user_addresses.filter(is_default=True).exclude(pk=self.pk).exists():
             self.is_default = True
 

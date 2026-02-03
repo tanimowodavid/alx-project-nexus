@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import OrderViewSet, CheckoutView, paystack_callback, paystack_webhook, VerifyPaymentView
+from .views import OrderViewSet, CheckoutView, VerifyPaymentView
 
 router = DefaultRouter()
 router.register(r'my-orders', OrderViewSet, basename='orders')

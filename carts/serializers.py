@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Cart, CartItem
-from products.models import ProductVariant
+
 
 class CartItemSerializer(serializers.ModelSerializer):
     subtotal = serializers.ReadOnlyField()
@@ -15,15 +15,16 @@ class CartItemSerializer(serializers.ModelSerializer):
         variant = data.get('product_variant')
         quantity = data.get('quantity')
 
-        # 1. Check if variant is active
+        # Check if variant is active (not deleted)
         if not variant.is_active or not variant.product.is_active:
-            raise serializers.ValidationError("This vehicle configuration is no longer available.")
+            raise serializers.ValidationError("This product is no longer available.")
 
-        # 2. Check stock
+        # Check if store has enough stock
         if variant.stock_quantity < quantity:
             raise serializers.ValidationError(f"Only {variant.stock_quantity} units available in stock.")
 
         return data
+
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)

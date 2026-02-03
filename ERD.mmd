@@ -1,0 +1,118 @@
+erDiagram
+%% USER & IDENTITY
+USER ||--o{ ADDRESS : "has"
+USER {
+int id PK
+string email UK
+string password_hash
+string first_name
+string last_name
+bool is_active
+bool is_admin
+datetime created_at
+}
+
+    ADDRESS {
+        int id PK
+        int user_id FK
+        string label
+        string country
+        string state
+        string city
+        string street
+        string phone_number
+        bool is_default
+    }
+
+    %% PRODUCT & CATALOG
+    CATEGORY ||--o{ CATEGORY : "parent_of"
+    CATEGORY }|--|{ PRODUCT : "belongs_to"
+    PRODUCT ||--o{ PRODUCT_VARIANT : "has"
+
+    CATEGORY {
+        int id PK
+        string name
+        string slug
+        string description
+        int parent_id FK
+    }
+
+    PRODUCT {
+        int id PK
+        string name
+        string slug
+        text description
+        bool is_active
+        datetime created_at
+    }
+
+    PRODUCT_VARIANT {
+        int id PK
+        int product_id FK
+        string sku UK
+        string variant_name
+        decimal price
+        int stock_quantity
+        bool is_active
+    }
+
+    %% SHOPPING FLOW
+    USER ||--o| CART : "owns"
+    CART ||--o{ CART_ITEM : "contains"
+    PRODUCT_VARIANT ||--o{ CART_ITEM : "added_to"
+
+    CART {
+        int id PK
+        int user_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    CART_ITEM {
+        int id PK
+        int cart_id FK
+        int product_variant_id FK
+        int quantity
+    }
+
+    %% ORDER FLOW
+    USER ||--o{ ORDER : "places"
+    ORDER ||--o{ ORDER_ITEM : "includes"
+
+    ORDER {
+        int id PK
+        int user_id FK
+        text shipping_address_snapshot
+        decimal total_amount
+        string status
+        string tx_ref
+        datetime created_at
+        datetime updated_at
+    }
+
+    ORDER_ITEM {
+        int id PK
+        int order_id FK
+        string product_name_snapshot
+        string variant_name_snapshot
+        decimal price_at_purchase
+        int quantity
+    }
+
+    %% AI SUPPORTING ENTITIES
+    USER ||--o{ CONVERSATION : "starts"
+    CONVERSATION ||--o{ MESSAGE : "contains"
+
+    CONVERSATION {
+        int id PK
+        int user_id FK
+        datetime created_at
+    }
+
+    MESSAGE {
+        int id PK
+        int conversation_id FK
+        string role
+        text content
+        datetime created_at
+    }
