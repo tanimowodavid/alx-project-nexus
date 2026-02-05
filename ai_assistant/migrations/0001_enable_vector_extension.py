@@ -6,7 +6,6 @@ from django.contrib.postgres.operations import CreateExtension
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_assistant', '000X_previous_migration'),  # Django will fill this automatically
     ]
 
     operations = [
