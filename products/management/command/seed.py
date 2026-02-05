@@ -2,6 +2,7 @@ import uuid
 from django.core.management.base import BaseCommand
 from django.utils.text import slugify
 from products.models import Category, Product, ProductVariant
+from ai_assistant.utils import generate_product_embedding
 
 class Command(BaseCommand):
     help = 'Seeds the database with Planet Inc products'
@@ -191,9 +192,18 @@ class Command(BaseCommand):
 
         # Create Products and Variants
         for p_data in products_to_create:
+            combined_text = f"{p_data['name']}: {p_data['desc']}"
+            
+            # Generate the vector coordinate
+            self.stdout.write(f"Generating embedding for {p_data['name']}...")
+            vector = generate_product_embedding(combined_text)
+
             product, created = Product.all_objects.get_or_create(
                 name=p_data['name'],
-                defaults={'description': p_data['desc']}
+                defaults={
+                    'description': p_data['desc'],
+                    'embedding': vector
+                }
             )
             
             # Associate Categories
@@ -213,3 +223,4 @@ class Command(BaseCommand):
                 )
 
         self.stdout.write(self.style.SUCCESS('Successfully seeded Planet Inc. inventory!'))
+

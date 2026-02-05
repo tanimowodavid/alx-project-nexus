@@ -1,7 +1,9 @@
+import uuid
 from django.db import models
 from .managers import ActiveManager
-import uuid
 from django.utils.text import slugify
+from pgvector.django import VectorField
+from ai_assistant.utils import generate_product_embedding
 
 # Create your models here.
 
@@ -27,6 +29,7 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     category = models.ManyToManyField(Category, related_name='products', blank=True)
+    embedding = VectorField(dimensions=1536, null=True, blank=True)
 
     objects = ActiveManager()
     all_objects = models.Manager()
@@ -40,10 +43,16 @@ class Product(models.Model):
                 unique_slug = f"{base_slug}-{uuid.uuid4().hex[:4]}"
             
             self.slug = unique_slug
+        # Generate embedding if it doesn't exist or if description changed
+        if not self.embedding:
+            combined_text = f"{self.name}: {self.description}"
+            self.embedding = generate_product_embedding(combined_text)
         super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
+
+
 
 
 class ProductVariant(models.Model):
