@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'address',
     'carts',
     'orders',
+    'ai_assistant',
 
 ]
 
@@ -92,10 +93,15 @@ WSGI_APPLICATION = 'planet_core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"), 
+        "PORT": 5432,
     }
 }
 
@@ -161,3 +167,16 @@ CELERY_BROKER_URL = 'redis://redis:6379/0'
 
 # Where the results of the tasks will be stored
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+
+
+# Celery Configuration
+# CELERY_BROKER_URL = config('REDIS_URL')
+# CELERY_RESULT_BACKEND = config('REDIS_URL')
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = TIME_ZONE
+
+
+# OpenAI API
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')

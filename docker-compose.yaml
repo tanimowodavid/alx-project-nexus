@@ -1,6 +1,9 @@
+version: "3.9"
+
 services:
   db:
-    image: postgres:16-alpine
+    image: ankane/pgvector:latest
+    container_name: planet_db
     environment:
       POSTGRES_DB: planet_db
       POSTGRES_USER: planet_user
@@ -12,30 +15,48 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: planet_redis
     ports:
       - "6379:6379"
 
   web:
     build: .
+    container_name: planet_web
     command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    environment:
+      - POSTGRES_DB=planet_db
+      - POSTGRES_USER=planet_user
+      - POSTGRES_PASSWORD=secure_password
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
     depends_on:
       - db
       - redis
+    ports:
+      - "8000:8000"
 
   celery:
     build: .
+    container_name: planet_celery
     command: celery -A planet_core worker --loglevel=info
     volumes:
       - .:/app
     environment:
-      - DEBUG=1
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
     depends_on:
       - db
       - redis
 
   adminer:
     image: adminer
+    container_name: planet_adminer
     ports:
       - "8080:8080"
     depends_on:
       - db
+
+volumes:
+  postgres_data:
