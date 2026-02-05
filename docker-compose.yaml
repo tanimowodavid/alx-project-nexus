@@ -4,12 +4,10 @@ services:
   db:
     image: ankane/pgvector:latest
     container_name: planet_db
-    environment:
-      POSTGRES_DB: planet_db
-      POSTGRES_USER: planet_user
-      POSTGRES_PASSWORD: secure_password
+    env_file:
+      - ./.env
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - planet_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
@@ -25,12 +23,8 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
-    environment:
-      - POSTGRES_DB=planet_db
-      - POSTGRES_USER=planet_user
-      - POSTGRES_PASSWORD=secure_password
-      - POSTGRES_HOST=db
-      - REDIS_HOST=redis
+    env_file:
+      - ./.env
     depends_on:
       - db
       - redis
@@ -59,4 +53,4 @@ services:
       - db
 
 volumes:
-  postgres_data:
+  planet_data:

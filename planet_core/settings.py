@@ -29,7 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-default-secret-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == 'True'
 
 ALLOWED_HOSTS = []
 
@@ -162,21 +162,12 @@ SIMPLE_JWT = {
 PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', '')
 PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', '')
 
+
 # The URL for Redis (the 'inbox' for my celery tasks)
-CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
 # Where the results of the tasks will be stored
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
-
-
-# Celery Configuration
-# CELERY_BROKER_URL = config('REDIS_URL')
-# CELERY_RESULT_BACKEND = config('REDIS_URL')
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-# CELERY_TIMEZONE = TIME_ZONE
-
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
 # OpenAI API
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
