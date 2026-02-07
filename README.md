@@ -15,7 +15,16 @@ The ALX ProDev Backend program is a project-driven training focused on practical
 ## Project Overview
 
 - Apps: `address`, `ai_assistant`, `carts`, `orders`, `products`, `users`, and core project settings in `planet_core`.
+> each app has its own readme for api list and proper documentation.
 - Features: product embeddings (pgvector), RAG-enabled AI assistant, Paystack payment integration, Celery background workers, and soft-delete for catalog items.
+
+## Technologies Used
+- Django: For building a scalable backend framework.
+- PostgreSQL: As the relational database for optimized performance.
+- JWT: For secure user authentication.
+- drt_spectacular: To document and test APIs.
+- Celery: Background workers
+- Paystack API: Payment processing
 
 ## Quickstart (Docker)
 
@@ -47,11 +56,6 @@ docker-compose exec web python manage.py seed
 ```
 
 Note: the seed command is located at `products/management/command/seed.py` in this repository.
-
-## Migrations & Seeding
-
-- Always run `python manage.py migrate` after building or pulling changes.
-- The seed script helps populate sample products and users for manual testing use it in dev only.
 
 ## Background Workers
 
