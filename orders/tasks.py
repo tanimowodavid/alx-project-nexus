@@ -1,5 +1,6 @@
 from celery import shared_task
 from django.db import transaction
+from django.conf import settings
 from django.core.mail import send_mail
 from .models import Order
 from products.models import ProductVariant
@@ -27,7 +28,8 @@ def process_order_payment(order_id):
 
             # Stock Check
             for item in order.items.all():
-                variant = variants.get(id=item.product_variant_id)
+                v_id = item.variant_snapshot.get('id')
+                variant = variants.get(id=v_id)
                 if variant.stock_quantity < item.quantity:
                     order.status = 'cancelled'
                     order.save()
@@ -36,7 +38,7 @@ def process_order_payment(order_id):
                     send_mail(
                         subject=f"Order Cancelled: #{order.id}",
                         message="You tried to make an order but oops! didn't work🙂",
-                        from_email="noreply@planet.com",
+                        from_email=settings.EMAIL_HOST_USER,
                         recipient_list=[order.user.email],
                         fail_silently=True,
                     )
@@ -45,7 +47,8 @@ def process_order_payment(order_id):
 
             # Deduct Stock & Update Order
             for item in order.items.all():
-                variant = variants.get(id=item.product_variant_id)
+                v_id = item.variant_snapshot.get('id')
+                variant = variants.get(id=v_id)
                 variant.stock_quantity -= item.quantity
                 variant.save()
 
@@ -55,16 +58,15 @@ def process_order_payment(order_id):
             # Clear the User's Cart
             user_cart = Cart.objects.get(user=order.user)
             user_cart.items.all().delete()
-            user_cart.total_price = 0
             user_cart.save()
 
             # Send Email to user
             send_mail(
                 subject=f"Order Confirmed: #{order.id}",
                 message="Thank you for your purchase! Your order is being processed ASAP.",
-                from_email="noreply@planet.com",
+                from_email=settings.EMAIL_HOST_USER,
                 recipient_list=[order.user.email],
-                fail_silently=True,
+                fail_silently=False,
             )
             logger.info(f'Order {order_id} made succesfully by {order.user.email}')
             return f"Order {order_id} successful: Stock updated and cart cleared."
@@ -79,7 +81,7 @@ def process_order_payment(order_id):
         send_mail(
             subject=f"Order Cancelled: #{order.id}",
             message="You tried to make an order but oops! didn't work🙂",
-            from_email="noreply@planet.com",
+            from_email=settings.EMAIL_HOST_USER,
             recipient_list=[order.user.email],
             fail_silently=True,
         )

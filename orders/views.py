@@ -70,7 +70,7 @@ class CheckoutView(viewsets.ViewSet):
                     "sku": item.product_variant.sku,
                     "name": item.product_variant.variant_name,
                     "product_name": item.product_variant.product.name,
-                    "price_at_purchase": item.product_variant.price,
+                    "price_at_purchase": str(item.product_variant.price),
                 }
             )
 
