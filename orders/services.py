@@ -22,7 +22,7 @@ class PaystackService:
             "email": email,
             "amount": int(amount * 100),
             "reference": str(tx_ref),
-            "callback_url": f"http://localhost:8000/orders/verify-payment/{tx_ref}",
+            "callback_url": f"http://localhost:8000/api/orders/verify-payment/{tx_ref}",
         }
         
         try:

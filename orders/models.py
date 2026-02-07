@@ -29,10 +29,8 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
-    product_snapshot = models.CharField(max_length=200)
-    variant_snapshot = models.CharField(max_length=200)
-    price_at_purchase = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
+    variant_snapshot = models.JSONField()
 
     def __str__(self):
         return f"{self.quantity} x {self.variant_snapshot}"

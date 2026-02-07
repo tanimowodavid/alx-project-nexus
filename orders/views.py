@@ -10,7 +10,9 @@ from .serializers import OrderSerializer
 from .services import PaystackService
 from django.shortcuts import get_object_or_404
 from .tasks import process_order_payment
+import logging
 
+logger = logging.getLogger(__name__)
 
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -62,10 +64,14 @@ class CheckoutView(viewsets.ViewSet):
         for item in cart.items.all():
             OrderItem.objects.create(
                 order=order,
-                product_snapshot=item.product_variant.product.name,
-                variant_snapshot=item.product_variant.variant_name,
-                price_at_purchase=item.product_variant.price,
-                quantity=item.quantity
+                quantity=item.quantity,
+                variant_snapshot={
+                    "id": item.product_variant.id,
+                    "sku": item.product_variant.sku,
+                    "name": item.product_variant.variant_name,
+                    "product_name": item.product_variant.product.name,
+                    "price_at_purchase": item.product_variant.price,
+                }
             )
 
         # Generate Paystack Link
@@ -103,6 +109,7 @@ class VerifyPaymentView(APIView):
             process_order_payment.delay(order.id)
             return Response({"message": "Payment verified, processing order."}, status=200)
 
+        logger.warning(f'Payment verification failed for Order #{order.id} with tx_ref {tx_ref}')
         return Response({"status": "Payment Failed"}, status.HTTP_400_BAD_REQUEST)
     
 
