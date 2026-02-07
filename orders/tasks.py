@@ -20,7 +20,7 @@ def process_order_payment(order_id):
                 return f"Order {order_id} already confirmed."
 
             # Get and sort Variant IDs to prevent Deadlocks
-            variant_ids = sorted(order.items.values_list('product_variant_id', flat=True))
+            variant_ids = sorted([item.variant_snapshot.get('id') for item in order.items.all()])
             
             # Lock the ProductVariant rows
             variants = ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
@@ -72,5 +72,16 @@ def process_order_payment(order_id):
     except Order.DoesNotExist:
         return f"Error: Order {order_id} not found."
     except Exception as e:
+        order.status = 'cancelled'
+        order.save()
+
+        # Send Email to user
+        send_mail(
+            subject=f"Order Cancelled: #{order.id}",
+            message="You tried to make an order but oops! didn't work🙂",
+            from_email="noreply@planet.com",
+            recipient_list=[order.user.email],
+            fail_silently=True,
+        )
         logger.error(f'Unexpected Error: {str(e)} while processing order {order_id}')
         return f"Unexpected Error: {str(e)}"

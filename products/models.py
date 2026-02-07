@@ -66,6 +66,16 @@ class ProductVariant(models.Model):
     objects = ActiveManager()
     all_objects = models.Manager()
 
+    def save(self, *args, **kwargs):
+        if not self.sku:
+            product_part = slugify(self.product.name)[:3].upper()
+            variant_part = slugify(self.variant_name)[:3].upper()
+            
+            unique_id = str(uuid.uuid4())[:4].upper()
+            self.sku = f"{product_part}-{variant_part}-{unique_id}"
+            
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.product.name} - {self.variant_name}"
 
