@@ -66,6 +66,12 @@ class ProductVariant(models.Model):
     objects = ActiveManager()
     all_objects = models.Manager()
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['sku']),
+            models.Index(fields=['is_active']),
+        ]
+
     def save(self, *args, **kwargs):
         if not self.sku:
             product_part = slugify(self.product.name)[:3].upper()
